@@ -1,0 +1,120 @@
+Sub add()
+
+'So no data is copied twice
+
+'Here we are going to make a sheet that will be the master list
+'We are going to be cycling to see if there is a worksheet with name "Master" already otherwise we will make one
+'If there is we are going to erase it
+'That way when new data is added it will all be good
+'Remember since we are erasing things we count backwards so we dont lose our step like las time where when
+'we erase it goes from 1->2 if we erase 2 then 3 becomes 2 and thus is skipped
+'
+For i = Worksheets.Count To 1 Step -1
+    If Worksheets(i).Name = "Master" Then
+        Worksheets("Master").Delete
+    Else
+    exist = "FALSE"
+    End If
+Next i
+
+'If it doesnt exist, we make a worksheet with title Master
+If Not exist Then
+    Worksheets.add.Name = "Master"
+End If
+
+'Since it might not add the sheet to the begining we are forcing it to the front
+    ActiveSheet.Move Before:=ActiveWorkbook.Worksheets(1)
+    ActiveSheet.Cells(1, 1).Value = "CWID"
+' Copy the first column from each worksheet to below CWID in the Master tab
+
+For i = 2 To Worksheets.Count
+    Worksheets(i).Activate
+    TotalCol = ActiveSheet.UsedRange.Columns.Count
+    TotalRow = ActiveSheet.UsedRange.Rows.Count
+    MasterRow = Sheets("Master").UsedRange.Rows.Count
+    MasterCol = Sheets("Master").UsedRange.Columns.Count
+'Cells(2,1)=A2 etc
+'We are copying to our Master and the loop is going to update the number of MasterRow
+    ActiveSheet.Range(Cells(2, 1), Cells(TotalRow, 1)).Copy Destination:=Sheets("Master").Cells(MasterRow + 1, 1)
+
+Next i
+
+'Now we are going to remove the extra CWIDs
+Worksheets("Master").Activate
+Dim Rng As Long
+Rng = Sheets("Master").UsedRange.Count
+'Columns can take in an Array for instance Columns Array(1,2) is the first two columns
+ActiveSheet.Range(Cells(1, 1), Cells(Rng, 1)).RemoveDuplicates Columns:=1, Header:=xlYes
+
+
+'Now we want to copy over the data from each worksheet to the first when the CWID matches
+'We are also going to highlight the data in different colours so its easier to see where one ends and the other starts
+
+MasterRow = Sheets("Master").UsedRange.Rows.Count
+'First we cycle through the worksheets
+For i = 2 To Worksheets.Count
+'We put MasterColUpdate here so that it updates AFTER cycling through all Cell(j,1)
+        MasterColUpdate = Sheets("Master").UsedRange.Columns.Count
+        Worksheets(i).Activate
+        TotalCol = ActiveSheet.UsedRange.Columns.Count
+        TotalRow = ActiveSheet.UsedRange.Rows.Count
+'Our MasterRow should not change after removing the duplicates
+    For j = 1 To MasterRow
+        For k = 1 To TotalRow
+            If Sheets("Master").Cells(j, 1).Value = Worksheets(i).Cells(k, 1) Then
+                Worksheets(i).Range(Cells(k, 2), Cells(k, TotalCol)).Copy Destination:=Sheets("Master").Cells(j, MasterColUpdate + 1)
+            End If
+        Next k
+    Next j
+'Here we colour the code in the master sheet
+    Dim c As Range
+    Sheets("Master").Activate
+    For Each c In Range(Cells(1, MasterColUpdate + 1), Cells(MasterRow, MasterColUpdate + TotalCol - 1))
+        c.Interior.ColorIndex = 33 + i Mod 3
+    Next c
+    'We are going to keep the firs three columns unhilighted
+    For Each d In Range(Cells(1, 1), Cells(MasterRow, 4))
+        d.Interior.ColorIndex = 0
+    Next d
+Next i
+
+Worksheets("Master").Activate
+
+'We are going to keep all the names from the people that are missing exams
+MasterRow = Sheets("Master").UsedRange.Rows.Count
+MasterCol = Sheets("Master").UsedRange.Columns.Count
+
+For j = 2 To MasterRow
+    If Sheets("Master").Cells(j, 2).Value = "" Then
+        For k = 5 To MasterCol
+            If Sheets("Master").Cells(1, k).Value = "Name" Then
+                Sheets("Master").Cells(j, 2).Value = Sheets("Master").Cells(j, k).Value
+            ElseIf Sheets("Master").Cells(1, k).Value = "NM" Then
+                Sheets("Master").Cells(j, 3).Value = Sheets("Master").Cells(j, k).Value
+            ElseIf Sheets("Master").Cells(1, k).Value = "Last name" Then
+                Sheets("Master").Cells(j, 4).Value = Sheets("Master").Cells(j, k).Value
+            End If
+        Next k
+    End If
+Next j
+
+
+'Now we are going to erase the extra name columns
+MasterRow = Sheets("Master").UsedRange.Rows.Count
+MasterCol = Sheets("Master").UsedRange.Columns.Count
+
+For i = MasterCol To 5 Step -1
+    If Sheets("Master").Cells(1, i).Value = "Name" Then
+        Sheets("Master").Range(Cells(1, i), Cells(MasterRow, i)).Delete
+'Its ElseIf not Else IF. FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUck
+    ElseIf Sheets("Master").Cells(1, i).Value = "Last name" Then
+        Sheets("Master").Range(Cells(1, i), Cells(MasterRow, i)).Delete
+    ElseIf Sheets("Master").Cells(1, i).Value = "MN" Then
+        Sheets("Master").Range(Cells(1, i), Cells(MasterRow, i)).Delete
+    End If
+Next i
+
+
+
+
+End Sub
